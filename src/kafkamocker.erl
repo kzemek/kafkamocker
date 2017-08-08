@@ -282,26 +282,27 @@ produce_request_to_messages(#kafkamocker_produce_request{ topics = Topics}) ->
 
 produce_topics_to_messages([], Acc)->
     Acc;
-produce_topics_to_messages([#kafkamocker_topic{ partitions = Partitions} | Topics], Acc)->
-    Next = produce_partitions_to_messages(Partitions, Acc),
+produce_topics_to_messages([#kafkamocker_topic{name = TopicName, partitions = Partitions} | Topics], Acc)->
+    Next = produce_partitions_to_messages(TopicName, Partitions, Acc),
     produce_topics_to_messages(Topics, Next).
 
-produce_partitions_to_messages([],Acc)->
+produce_partitions_to_messages(_TopicName, [],Acc)->
     Acc;
-produce_partitions_to_messages([#kafkamocker_partition{ message_sets = MessageSets} | Partitions], Acc)->
-    Next = produce_messagesets_to_messages(MessageSets, Acc),
-    produce_partitions_to_messages(Partitions, Next).
+produce_partitions_to_messages(TopicName, [#kafkamocker_partition{ message_sets = MessageSets} | Partitions], Acc)->
+    Next = produce_messagesets_to_messages(TopicName, MessageSets, Acc),
+    produce_partitions_to_messages(TopicName, Partitions, Next).
 
-produce_messagesets_to_messages([],Acc)->
+produce_messagesets_to_messages(_TopicName, [],Acc)->
     Acc;
-produce_messagesets_to_messages([#kafkamocker_message_set{ messages = Messages} | MessageSets], Acc)->
-    Next = produce_messages_to_values(Messages, Acc),
-    produce_messagesets_to_messages(MessageSets, Next).
-produce_messages_to_values([], Acc)->
+produce_messagesets_to_messages(TopicName, [#kafkamocker_message_set{ messages = Messages} | MessageSets], Acc)->
+    Next = produce_messages_to_values(TopicName, Messages, Acc),
+    produce_messagesets_to_messages(TopicName, MessageSets, Next).
+
+produce_messages_to_values(_TopicName, [], Acc)->
     Acc;
-produce_messages_to_values([#kafkamocker_message{ value = Value} | Messages], Acc)->
-    Next = [Value|Acc],
-    produce_messages_to_values(Messages, Next).
+produce_messages_to_values(TopicName, [#kafkamocker_message{ value = Value} | Messages], Acc)->
+    Next = [{TopicName, Value}|Acc],
+    produce_messages_to_values(TopicName, Messages, Next).
 
 to_binary(Bin) when is_binary(Bin)->
     Bin;
